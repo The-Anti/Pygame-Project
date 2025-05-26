@@ -18,6 +18,7 @@ clock = pygame.time.Clock()
 text = pygame.font.SysFont(None, 60)
 subText = pygame.font.SysFont(None, 40)
 subberText = pygame.font.SysFont(None, 30)
+subbestText = pygame.font.SysFont(None, 20)
 
 #COLOURS
 moneyGreen = (133, 187, 101)
@@ -44,14 +45,17 @@ def tint_image(image, tint_color):
 class button():
     #MAIN BUTTON THINGS
 
-    def __init__(self, bWidth, bHeight, left, top, number, type, int, price):   #All the variables for the button
+    def __init__(self, bWidth, bHeight, left, top, number, type, int, price, clicks, price_func=None):   #All the variables for the button
         self.button = pygame.rect.Rect(left, top, bWidth, bHeight)      #Setting up the button
         self.display_text = text.render(f'{number}', True, 'BLACK')     #Setting up the what button number it is
         self.type = type.lower()        #Variable for the type of button (exponential, additive, multiplicitive...)
         self.int = int      #Variable for the value of the button
+        self.clicks = 0     #how many times you clicked
+        self.maxClicks = clicks #how many times you can click
         self.clicked = False    #Boolean to check if button is clicked
         self.flag = False       #Just a flag for threading
         self.price = price      #Variable for the price tag
+        self.price_func = price_func    #Price scaling function
 
     def draw_button(self, description, colour, textsize):   #Setting up the variables to draw the button
         pygame.draw.rect(screen, colour, self.button, border_radius=20)  #Draws the button onto the screen
@@ -61,9 +65,13 @@ class button():
             self.renderSubText(desc = description)      #Regular description text size
         elif textsize == subberText:
             self.renderSubberText(desc = description)   #Smaller description text size
-        self.draw_price(price=self.price, colour=colour)    #(see down below)
+        self.draw_price(colour=colour)    #(see down below)
 
-    def draw_price(self,price,colour):     #Setting up the price box
+        self.upgradeCount = subberText.render(f'{self.clicks}/{self.maxClicks}', True, 'BLACK')
+        self.upgradeCountRect = self.upgradeCount.get_rect(topright = (self.button.centerx+140, self.button.centery-55))
+        screen.blit(self.upgradeCount, self.upgradeCountRect)
+
+    def draw_price(self,colour):     #Setting up the price box
         pHeight = 50                        #All the variables to set up the price rect.
         pWidth = self.button.width / 2
         pLeft = self.button.centerx - pWidth / 2
@@ -71,7 +79,12 @@ class button():
         self.priceBox = pygame.rect.Rect(pLeft, pTop, pWidth, pHeight)      #Setting up price rect
         pygame.draw.rect(screen, colour, self.priceBox, border_radius = 10) #drawing the price rect
 
-        self.display_subtext = subText.render(f'£{price}', True, (0,0,0))   #setting up the price text
+        if self.price <= 0:     #If upgrade is free then display it to be free
+            self.display_subtext = subText.render('Free', True, (0,0,0))
+        elif self.clicks == self.maxClicks:
+            self.display_subtext = subText.render('Max', True, (0,0,0)) #If its maxxed out then say its maxxed out
+        else: 
+            self.display_subtext = subText.render(f'£{self.price}', True, (0,0,0))   #setting up the price text
         self.priceText_rect = self.display_subtext.get_rect(center=(self.priceBox.centerx, self.priceBox.centery))  #setting up the position of the price text
         screen.blit(self.display_subtext, self.priceText_rect)  #drawing the price text
 
@@ -89,26 +102,32 @@ class button():
         screen.blit(self.display_subtext, self.subtext_rect)
 
 
+
     #Click detection and money increment system
     def clickDetection(self):   #This is in the events area so only runs when you click the mouse button
         global money
         mousepos = pygame.mouse.get_pos()   #Gets position of the mouse
-        if self.button.collidepoint(mousepos) and self.clicked == False:    #If mouse is over a button and its not been clicked
-            self.clicked = True     #Sets the clicked value to true and turns flag on
+        if self.button.collidepoint(mousepos) and self.clicked == False and money >= self.price:    #If mouse is over a button, you can click it and you have enough money then...
+            if self.clicks == (self.maxClicks - 1):
+                self.clicked = True     #Sets the clicked value to true and turns flag on
             self.flag = True
-            self.colour = (83,133,51)   #in theory should change the colour...
-            print(self.clicked)
+            self.colour = (83,137,51)   #in theory should change the colour...
+            money -= self.price
+            self.clicks += 1
+            if self.price_func:
+                self.price = round(self.price_func(self.price, self.clicks), 2)
+        
 
     def moneyIncrement(self):   #Used in the threading, just increases the money by a set amount
         global money
         while True:
             if self.flag == True:   #When button has been pressed
                 if self.type == 'add':  #If its additive then add money by the value
-                    money += self.int
+                    money += round(self.clicks * self.int,4)
                 if self.type == 'mult': #If its multiplicitive then multiply money by the value
-                    money *= self.int
+                    money = money + (money * round(self.clicks * self.int,4))
                 if self.type == 'exp':  #If its exponential then do the money to the power of the value
-                    money = pow(money, self.int)
+                    money = money + pow(money, round(self.clicks * self.int,4))
             time.sleep(1)
 #----------------------------------------------------------------------------------------------------------------------
 
@@ -117,7 +136,7 @@ class button():
 #-------------------------------------------------------------------------------
 class UIbutton(button):
     def __init__(self, bWidth, bHeight, left, top):
-        super().__init__(bWidth, bHeight, left, top, number='',type='',int=0, price='') #Setting up the button
+        super().__init__(bWidth, bHeight, left, top, number='',type='',int=0, price='', clicks=0) #Setting up the button
 
     def draw_UIbutton(self, image):
         pygame.draw.rect(screen, (255,255,255), self.button, border_radius=5) #Draws the button
@@ -126,13 +145,29 @@ class UIbutton(button):
 tinted_image_button = tint_image(button_image, (124,124,124))  #Tints a button image gray
 #-------------------------------------------------------------------------------
 
+def b1Func(curPrice, click):
+    if click == 1:
+        return 0.1
+    elif click < 3:
+        curPrice = curPrice + (curPrice * 0.2)
+        return curPrice
+    else:
+        curPrice = curPrice + (curPrice * 0.5)
+        return curPrice
+    
+def b2Func(curp, click):
+    if click < 1:
+        return curp * 1.3
+    else:
+        return curp * 1.5
 
 #BUTTONS WILL GO HERE
+#BUTTON VARIABLES ([Width], [Height], [Left], [Top], [Button number], [Type], [Value], [Price], [Clicks], [Price function (default = None)])
 #-------------------------------------------------------------------------------
 # £ MONEY BUTTONS
-moneyUp1 = button(300,120,550,550,1,'add',0.1, '0')         #BUTTON VARIABLES ([Width], [Height], [Left], [Top], [Button number], [Type], [Value], [Price])
-moneyUp2 = button(300,120,550,325,2,'mult',1.05, '1')       #Don't forget to THREAD EACH BUTTON
-moneyUp3 = button(300,120,550,100,3,'exp',1.02,'5')            #And to ADD THE CLICK DETECTION AND DRAW THE BUTTON IN THE WHILE LOOP
+moneyUp1 = button(300, 120, 550, 550, 1, 'add', 0.1, 0, 5, price_func=b1Func)         
+moneyUp2 = button(300,120,550,325,2,'mult',0.05,1,3, price_func=b2Func)       #Don't forget to THREAD EACH BUTTON
+moneyUp3 = button(300,120,550,100,3,'exp',0.02,5,1)            #And to ADD THE CLICK DETECTION AND DRAW THE BUTTON IN THE WHILE LOOP
 
 #UI BUTTONS
 menuButton = UIbutton(60,60,10,100)    #UI BUTTON VARIABLES ([Width], [Height], [Left], [Top])
@@ -157,7 +192,7 @@ while True:
         if event.type == pygame.QUIT:   #If you leave the game, close the game
             pygame.quit()
             exit()
-        if event.type == pygame.MOUSEBUTTONDOWN:    #If you click
+        if event.type == pygame.MOUSEBUTTONDOWN:    #When you click, things below happen.
             #ALL CLICK DETECTION WILL GO HERE
             #-------------------------------------------------------------------------------
             menuButton.clickDetection()
@@ -165,7 +200,6 @@ while True:
             moneyUp2.clickDetection()
             moneyUp3.clickDetection()
             #-------------------------------------------------------------------------------
-
     #Making the money visible on the screen
     moneyText = text.render(f'£ {round(money,2)}', True, 'WHITE')   #Shows the value of the money (and rounds it to two decimal places)
     moneyTextRect = moneyText.get_rect(center=(width/2,50))     #Positions the money at the top middle of the screen
@@ -173,9 +207,9 @@ while True:
 
     menuButton.draw_UIbutton(tinted_image_button)   #Draws the Menu Tab button to the screen
 
-    moneyUp1.draw_button('0.1 Money per second', moneyGreen, subText)
-    moneyUp2.draw_button('Multiplies money by \n   1.05 per second', moneyGreen, subberText)
-    moneyUp3.draw_button('Exponents money by \n   1.02 each second', moneyGreen, subberText)
+    moneyUp1.draw_button('0.1 Money per second', moneyGreen, subText)   #Draws the buttons onto the screen ([description], [colour], [text size])
+    moneyUp2.draw_button('Multiplies money by \n   0.05 per second', moneyGreen, subberText)
+    moneyUp3.draw_button('Money boosts itself', moneyGreen, subberText)
 
 
     pygame.display.update()
