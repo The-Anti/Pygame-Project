@@ -11,6 +11,7 @@ Update log (23/05/25)
 -Added a second button.
 
 Update log (26/05/25)
+
 -Added price underneath button, doesn't mean anything yet.
 -Added comments on all the code.
 -Added a third button to exponentiate the money
