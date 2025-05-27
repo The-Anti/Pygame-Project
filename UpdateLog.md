@@ -25,3 +25,16 @@ Update log (26/05/25)
   -Made price box display 'Free' when price is 0 or lower.
   -Made price box display 'Max' when all upgrades are bought.
   -Added 2 new text sizes
+
+Update log (27/05/25)
+  -Added rebirth button
+    -Resets the money buttons and the money itself for a specific amount of rebirth tokens
+    -Bought with money and shows how many rebirth tokens you will get when you rebirth
+  -Added rebirth tokens
+    -Used to purchase rebirth buttons (duh)
+  -Added two rebirth buttons
+    -So far it's a money multiplier and tick speed reducer.
+    -Same logic as the money buttons but you have to buy them with rebirth tokens
+  -Placement of the rebirth stuff is currently on the right hand side.
+  -Added new logic to multiply or exponentiate how many rebirth tokens you get upon rebirthing.
+  -Added new logic to increase tick speed
