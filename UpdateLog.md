@@ -46,5 +46,5 @@ Update log (27/05/25)
       -so 50.5 -> 50.50 and 1,020 -> 1.0k
     -Added white 'branches' to connect buttons
       -they're just white lines that connect buttons of the same currency
-      -so far only for the money buttons
+    -Finally added custom Rebirth Token icon (г)
     
