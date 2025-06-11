@@ -38,3 +38,13 @@ Update log (27/05/25)
   -Placement of the rebirth stuff is currently on the right hand side.
   -Added new logic to multiply or exponentiate how many rebirth tokens you get upon rebirthing.
   -Added new logic to increase tick speed
+
+  Update log (11/06/25)
+    -Abbreviated currency to help read better
+      -things like 1,000 -> 1k
+    -Made currency display 2dp up until abbreviated, where it displays only 1dp
+      -so 50.5 -> 50.50 and 1,020 -> 1.0k
+    -Added white 'branches' to connect buttons
+      -they're just white lines that connect buttons of the same currency
+      -so far only for the money buttons
+    
