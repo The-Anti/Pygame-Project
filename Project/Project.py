@@ -1,4 +1,4 @@
-import pygame
+import pygame, random
 from sys import exit
 import math
 import threading
@@ -14,7 +14,6 @@ pygame.init()
 millnames = ['',' k',' M',' B',' T',' Qa', ' Qn', ' Sx', ' Sp', ' Oc', ' No', ' De', ' UDe', ' DDe', ' TDe', ' QaDe', ' QnDe', ' SxDe', ' SpDe', ' ODe', ' NDe'
              ,' Vg', ' UVg', ' DVg', ' TVg', ' QaVg', ' QnVg', ' SxVg', ' SpVg', ' OVg', ' NVg', 'Tg']
 
-#i have no clue what happens here but it works so :D
 def millify(n):
     n = float(n)
     if n == float('inf'):
@@ -22,7 +21,7 @@ def millify(n):
     else:
         millidx = max(0,min(len(millnames)-1,
                         int(math.floor(0 if n == 0 else math.log10(abs(n))/3))))
-    if n < 1000:    #Just checks if the number is above 1 thousand, if it is then just display to 1dp instead of 2
+    if n < 1000:
         return '{:.2f}{}'.format(n / 10**(3 * millidx), millnames[millidx])
     else:
         return '{:.1f}{}'.format(n / 10**(3 * millidx), millnames[millidx])
@@ -33,6 +32,17 @@ def millify(n):
 screen = pygame.display.set_mode((width, height))
 pygame.display.set_caption('Incremental')
 clock = pygame.time.Clock()
+
+
+#background stuff
+WORLD_SIZE = (10000, 10000)
+background = pygame.Surface(WORLD_SIZE)
+
+tile_image = pygame.image.load('croppedBG1.png').convert()
+tile_size = tile_image.get_size()
+
+camera = pygame.Vector2(4900, 4900)
+dragging = False
 
 #Text things
 text = pygame.font.SysFont(None, 60)
@@ -230,7 +240,7 @@ class rButton(button):
         elif self.type == 'rebirth': 
             self.display_subtext = subText.render(f'£{self.price}', True, (0,0,0))   #Have it show you can buy it with money if its the rebirth button
         else:
-            self.display_subtext = subText.render(f'г {self.price}', True, (0,0,0))   #Show you have to spend rebirth tokens to buy it Ӷ
+            self.display_subtext = subText.render(f'Г {self.price}', True, (0,0,0))   #Show you have to spend rebirth tokens to buy it
         self.priceText_rect = self.display_subtext.get_rect(center=(self.priceBox.centerx, self.priceBox.centery))  #setting up the position of the price text
         screen.blit(self.display_subtext, self.priceText_rect)  #drawing the price text
 
@@ -286,7 +296,8 @@ class rButton(button):
 
 
 #-------------------------------------------------------------------------------
-#-------------------------------------------------------------------------------
+
+
 
 def b1Func(curPrice, click):
     if click == 1:
@@ -314,7 +325,7 @@ def default(curp, click):
     else:
         return curp * 1.05
     
-#-------------------------------------------------------------------------------
+
 
 #BUTTONS WILL GO HERE
 #BUTTON VARIABLES ([Width], [Height], [Left], [Top], [Button number], [Type], [Value], [Price], [Clicks], [Price function (default = None)])
@@ -325,15 +336,15 @@ moneyUp1 = button(300, 120, 550, 550, 1, 'add', 0.1, 0, 5, price_func=b1Func)
 moneyUp2 = button(300,120,550,325,2,'mult',0.05,1,3, price_func=b2Func)       #Don't forget to THREAD EACH BUTTON
 moneyUp3 = button(300,120,550,100,3,'exp',0.02,5,1)            #And to ADD THE CLICK DETECTION AND DRAW THE BUTTON IN THE WHILE LOOP
 
-#list for buttons
+#Class for buttons
 moneyButtons = [moneyUp1, moneyUp2, moneyUp3]
 
-#REBIRTH BUTTONS ᒥ
+#REBIRTH BUTTONS
 rebirthButton = rButton(300,120,1000,550,'г0','rebirth',0,1,2)
 rebirth1 = rButton(300,120,1000,325,'г1','mult',0.25,1,10,price_func=default)
 rebirth2 = rButton(300,120,1000,100,'г2','tick',100,3,5,price_func=default)
 
-#list for rebirth buttons
+#Class for rebirth buttons
 rebirthButtons = [rebirth1, rebirth2]
 
 #UI BUTTONS
@@ -359,12 +370,37 @@ tr2.start()
 
 #Main game loop
 while True:
-    screen.fill((0,0,0))    #Makes background black
+    screen.fill((0,0,0))
+
+    # Determine visible area
+    screen_rect = pygame.Rect(camera.x, camera.y, *screen.get_size())
+
+    if camera.x <= -3000:
+        camera.x = -3000
+    if camera.x >= 13000:
+        camera.x = 13000
+    if camera.y <= -3000:
+        camera.y = -3000
+    if camera.y >= 13000:
+        camera.y = 13000
+
+    # Get tile range to draw based on camera view
+    start_x = int(screen_rect.left // tile_size[0])
+    end_x = int(screen_rect.right // tile_size[0]) + 1
+    start_y = int(screen_rect.top // tile_size[1])
+    end_y = int(screen_rect.bottom // tile_size[1]) + 1
+
+    for x in range(start_x, end_x):
+        for y in range(start_y, end_y):
+            tile_pos = pygame.Vector2(x * tile_size[0], y * tile_size[1])
+            draw_pos = tile_pos - camera
+            screen.blit(tile_image, draw_pos)
+
     for event in pygame.event.get():    #Event system
         if event.type == pygame.QUIT:   #If you leave the game, close the game
             pygame.quit()
             exit()
-        if event.type == pygame.MOUSEBUTTONDOWN:    #When you click, things below happen.
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:    #When you click, things below happen.
             #ALL CLICK DETECTION WILL GO HERE
             #-------------------------------------------------------------------------------
             menuButton.clickDetection()
@@ -378,23 +414,33 @@ while True:
             rebirthButton.clickDetection()
             #-------------------------------------------------------------------------------
 
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 3:
+            dragging = True
+            last_mouse_pos = pygame.Vector2(event.pos)
+        elif event.type == pygame.MOUSEBUTTONUP and event.button == 3:
+            dragging = False
+        elif event.type == pygame.MOUSEMOTION and dragging:
+            mouse_pos = pygame.Vector2(event.pos)
+            delta = mouse_pos - last_mouse_pos
+            camera -= delta
+            last_mouse_pos = mouse_pos
+
+
     #Making the money visible on the screen
     moneyText = text.render(f'£ {millify(money)}', True, 'WHITE')   #Shows the value of the money (and rounds it to two decimal places)
     moneyTextRect = moneyText.get_rect(center=(width/2,50))     #Positions the money at the top middle of the screen
     screen.blit(moneyText,moneyTextRect)    #Draws it onto the screen (keep in the while loop to constantly update it)
 
     #Making rebirths visble on the screen
-    rebirthText = text.render(f'Г {millify(rebirths)}', True, 'WHITE')   #Shows the value of the money (and rounds it to two decimal places) Ӷ
+    rebirthText = text.render(f'Г {millify(rebirths)}', True, 'WHITE')   #Shows the value of the money (and rounds it to two decimal places)
     rebirthTextRect = rebirthText.get_rect(center=(moneyTextRect.centerx + 450,50))     #Positions the money at the top middle of the screen
     screen.blit(rebirthText,rebirthTextRect)    #Draws it onto the screen (keep in the while loop to constantly update it)
 
     menuButton.draw_UIbutton(tinted_image_button)   #Draws the Menu Tab button to the screen
 
-    #linking money buttons
     moneyUp1.link(moneyUp2)
     moneyUp2.link(moneyUp3)
 
-    #linking rebirth buttons
     rebirthButton.link(rebirth1)
     rebirth1.link(rebirth2)
 
@@ -407,5 +453,6 @@ while True:
     rebirth1.draw_button('Multiply money by \n     0.25 per tick', rebirthYellow, subberText)
     rebirth2.draw_button('Decreases ticks per \n  second by 0.1', rebirthYellow, subberText)
 
-    pygame.display.update()
+
+    pygame.display.flip()
     clock.tick(60)
