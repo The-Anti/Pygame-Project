@@ -48,3 +48,6 @@ Update log (27/05/25)
       -they're just white lines that connect buttons of the same currency
     -Finally added custom Rebirth Token icon (г)
     
+  Update log (18/06/25)
+    -Made the background draggable by holding right mouse button#
+    -Added space themed background
