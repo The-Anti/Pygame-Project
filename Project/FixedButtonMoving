@@ -1,0 +1,160 @@
+import pygame
+import time
+import threading
+import math
+
+# Initialize
+pygame.init()
+screen = pygame.display.set_mode((1400, 800))
+clock = pygame.time.Clock()
+
+text = pygame.font.SysFont(None, 60)
+subText = pygame.font.SysFont(None, 40)
+subberText = pygame.font.SysFont(None, 30)
+subbestText = pygame.font.SysFont(None, 20)
+
+#abbreviating the money
+millnames = ['',' k',' M',' B',' T',' Qa', ' Qn', ' Sx', ' Sp', ' Oc', ' No', ' De', ' UDe', ' DDe', ' TDe', ' QaDe', ' QnDe', ' SxDe', ' SpDe', ' ODe', ' NDe'
+             ,' Vg', ' UVg', ' DVg', ' TVg', ' QaVg', ' QnVg', ' SxVg', ' SpVg', ' OVg', ' NVg', 'Tg']
+def millify(n):
+    n = float(n)
+    if n == float('inf'):
+        return n
+    else:
+        millidx = max(0,min(len(millnames)-1,
+                        int(math.floor(0 if n == 0 else math.log10(abs(n))/3))))
+    if n < 1000:
+        return '{:.2f}{}'.format(n / 10**(3 * millidx), millnames[millidx])
+    else:
+        return '{:.1f}{}'.format(n / 10**(3 * millidx), millnames[millidx])
+
+text = pygame.font.SysFont(None, 60)
+subText = pygame.font.SysFont(None, 40)
+subberText = pygame.font.SysFont(None, 30)
+subbestText = pygame.font.SysFont(None, 20)
+
+moneyGreen = (133, 187, 101)
+rebirthYellow = (255, 174, 66)
+
+tile_image = pygame.image.load('croppedBG1.png').convert()
+tile_size = tile_image.get_size()
+
+# Camera
+camera = pygame.Vector2(0, 0)
+dragging = False
+tps = 0
+money = 0
+
+class Button():
+    def __init__(self, w, h, x, y, colour, number, desc):
+        self.button = pygame.Surface((w,h))
+        self.pos = pygame.Vector2(x,y)
+        self.buttonRect = self.button.get_rect(center = self.pos)
+        self.button.fill(colour)
+        self.numberDisplay = subText.render(f'{number}', True, 'Black')
+        self.desc = subText.render(desc, True, 'Black')
+
+    def drawButton(self):
+        self.buttonRect = self.button.get_rect(center = self.pos)
+        screen.blit(self.button, self.buttonRect)
+        self.numberDisplayRect = self.numberDisplay.get_rect(center = (self.buttonRect.centerx, self.buttonRect.centery - 50))
+        screen.blit(self.numberDisplay, self.numberDisplayRect)
+        self.descRect = self.desc.get_rect(center = (self.buttonRect.centerx, self.buttonRect.centery))
+        screen.blit(self.desc, self.descRect)
+
+    def changePos(self, camera):
+        self.pos -= camera
+
+    def clickDetection(self):   #This is in the events area so only runs when you click the mouse button
+        global money
+        mousepos = pygame.mouse.get_pos()   #Gets position of the mouse
+        if self.buttonRect.collidepoint(mousepos):
+            print('Clicked')
+#------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+#------------------------------------------------------------------------------------------------------------------------------------------
+while True:
+    button1 = Button(300,150,400,200, moneyGreen, 1, 'Button 1')
+    button2 = Button(300,150,900,200, moneyGreen, 2, 'Used for click detection')
+    button3 = Button(300,150,1400,200, moneyGreen, 3, 'Add 1 to money')
+    button4 = Button(300,150,400,500, moneyGreen, 4, 'Add 5 to money')
+    button5 = Button(300,150,900,500, moneyGreen, 5, 'Never bought')
+    button6 = Button(300,150,1400,500, moneyGreen, 6, 'test')
+    button7 = Button(300,150,400,800, moneyGreen, 7, 'testtest')
+    button8 = Button(300,150,900,800, moneyGreen, 8, 'TESTTTT')
+    button9 = Button(300,150,1400,800, moneyGreen, 9, 'test to see how long this can stretch out for and if it will be a problem')
+    button10 = Button(300,150,400,1100, moneyGreen, 10, 'Multiply money by 2')
+    button11 = Button(300,150,900,1100, moneyGreen, 11, 'Multiply money by 0.5')
+    button12 = Button(300,150,1400,1100, moneyGreen, 12, 'Exponent the money by 1.2')
+    button13 = Button(300,150,400,1400, moneyGreen, 13, 'Exponent the money by 0.2')
+    button14 = Button(300,150,900,1400, moneyGreen, 14, 't')
+    button15 = Button(300,150,1400,1400, moneyGreen, 15, 'e')
+    button16 = Button(300,150,400,1700, moneyGreen, 16, 's')
+    button17 = Button(300,150,900,1700, moneyGreen, 17, 't')
+    button18 = Button(300,150,1400,1700, moneyGreen, 18, 'i')
+    button19 = Button(300,150,400,2000, moneyGreen, 19, 'n')
+    button20 = Button(300,150,900,2000, moneyGreen, 20, 'g')
+
+    buttons = [button1, button2, button3, button4, button5, button6, button7, button8, button9, button10, button11, button12, button13, button14, button15, button16,
+               button17, button18, button19, button20]
+
+
+
+    screen_rect = pygame.Rect(camera.x, camera.y, *screen.get_size())
+
+    if camera.x <= -3000:
+        camera.x = -3000
+    if camera.x >= 13000:
+        camera.x = 13000
+    if camera.y <= -3000:
+        camera.y = -3000
+    if camera.y >= 13000:
+        camera.y = 13000
+
+    # Get tile range to draw based on camera view
+    start_x = int(screen_rect.left // tile_size[0])
+    end_x = int(screen_rect.right // tile_size[0]) + 1
+    start_y = int(screen_rect.top // tile_size[1])
+    end_y = int(screen_rect.bottom // tile_size[1]) + 1
+
+    for x in range(start_x, end_x):
+        for y in range(start_y, end_y):
+            tile_pos = pygame.Vector2(x * tile_size[0], y * tile_size[1])
+            draw_pos = tile_pos - camera
+            screen.blit(tile_image, draw_pos)
+
+
+    for event in pygame.event.get():    #Event system
+        if event.type == pygame.QUIT:   #If you leave the game, close the game
+            pygame.quit()
+            exit()
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+
+            for i in buttons:
+                i.clickDetection()
+
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 3:
+            dragging = True
+            last_mouse_pos = pygame.Vector2(event.pos)
+        elif event.type == pygame.MOUSEBUTTONUP and event.button == 3:
+            dragging = False
+        elif event.type == pygame.MOUSEMOTION and dragging:
+            mouse_pos = pygame.Vector2(event.pos)
+            delta = mouse_pos - last_mouse_pos
+            camera -= delta
+            last_mouse_pos = mouse_pos
+
+    for i in buttons:
+        i.changePos(camera)
+        i.drawButton()
+
+
+    moneyText = text.render(f'£ {millify(money)}', True, 'WHITE')   #Shows the value of the money (and rounds it to two decimal places)
+    text_pos = pygame.Vector2(400, 0) - camera
+    variable_rect = moneyText.get_rect(center=text_pos)
+    screen.blit(moneyText, variable_rect)
+
+    clock.tick(60)
+    pygame.display.flip()
