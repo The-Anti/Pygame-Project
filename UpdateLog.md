@@ -49,5 +49,11 @@ Update log (27/05/25)
     -Finally added custom Rebirth Token icon (г)
     
   Update log (18/06/25)
-    -Made the background draggable by holding right mouse button#
+    -Made the background draggable by holding right mouse button
     -Added space themed background
+
+  Update log (26/06/25)
+    -Finally finished the dragging module, allowing the user to hold right click to drag the play area around to see more of the map.
+      -also fixed button hitbox not updating while dragging
+      -the button and money move around with the background as well.
+    -Button now changes colour when maxed out.
