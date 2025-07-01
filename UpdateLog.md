@@ -57,3 +57,8 @@ Update log (27/05/25)
       -also fixed button hitbox not updating while dragging
       -the button and money move around with the background as well.
     -Button now changes colour when maxed out.
+
+  Update log (01/07/25)
+   -Implemented dragging module into the main game and added 2 more buttons, along with reworking some existing buttons.
+   -Made the money and rebirth count move around with the background
+     -their positions have updated to be under the first button in their respective tree
