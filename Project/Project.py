@@ -398,7 +398,7 @@ camera = pygame.Vector2(0, 0)
 #Type = add (additive), mult (multiplicitive), exp (exponential), tick (changes ticks per second [input in ms])
 #-------------------------------------------------------------------------------
 # £ MONEY BUTTONS
-moneyUp1 = button(300, 120, 550, 550, moneyGreen, 1, 'Adds 0.1 per tick', subText, 'add', 10.1, 0, 5, price_func=b1Func)         
+moneyUp1 = button(300, 120, 550, 550, moneyGreen, 1, 'Adds 0.1 per tick', subText, 'add', 0.1, 0, 5, price_func=b1Func)         
 moneyUp2 = button(300,120,550,325, moneyGreen, 2, 'Multiplies money by \n        0.02 per tick', subberText, 'mult',0.02,1,5, price_func=b2Func, prevButton=1)       #Don't forget to THREAD EACH BUTTON
 moneyUp3 = button(300,120,550,100, moneyGreen,3, 'Add 0.5 per tick', subText, 'add', 0.5, 3, 10, price_func = snowball, prevButton=2)            #And to ADD THE CLICK DETECTION AND DRAW THE BUTTON IN THE WHILE LOOP
 moneyUp4 = button(300,120,200,-125, moneyGreen,4, 'Multiplies money by \n    0.05 per tick', subberText, 'mult', 0.1, 8, 10, price_func=default, prevButton=3)            #And to ADD THE CLICK DETECTION AND DRAW THE BUTTON IN THE WHILE LOOP
