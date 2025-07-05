@@ -62,3 +62,8 @@ Update log (27/05/25)
    -Implemented dragging module into the main game and added 2 more buttons, along with reworking some existing buttons.
    -Made the money and rebirth count move around with the background
      -their positions have updated to be under the first button in their respective tree
+
+  Update log (05/07/25)
+    -Finally made the buttons hidden until the previous button is bought, where it will make the button visible and link it automatically.
+      -Some buttons make multiple buttons visible!
+    -Added more abbreviations for numbers, making it able to display larger numbers in a compact way.
