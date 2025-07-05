@@ -12,7 +12,8 @@ pygame.init()
 
 #abbreviating the money
 millnames = ['',' k',' M',' B',' T',' Qa', ' Qn', ' Sx', ' Sp', ' Oc', ' No', ' De', ' UDe', ' DDe', ' TDe', ' QaDe', ' QnDe', ' SxDe', ' SpDe', ' ODe', ' NDe'
-             ,' Vg', ' UVg', ' DVg', ' TVg', ' QaVg', ' QnVg', ' SxVg', ' SpVg', ' OVg', ' NVg', 'Tg']
+             ,' Vg', ' UVg', ' DVg', ' TVg', ' QaVg', ' QnVg', ' SxVg', ' SpVg', ' OVg', ' NVg', ' Tg', ' UTg', ' DTg', ' TTg', ' QaTg', ' QnTg', ' SxTg', ' SpTg'
+             , ' OTg', ' NTg', ' Qag', ' UQag', ' DQag', ' TQag', ' QaQg', ' QnQag', ' SxQag', ' SpQag', ' OQag', ' NQag', ' Qng']
 
 def millify(n):
     n = float(n)
@@ -57,6 +58,7 @@ rebirthYellow = (255, 174, 66)
 #-----------------------------------------------
 money = 0
 rebirths = 0
+rebirthFlag = False
 tps = 1000
 #-----------------------------------------------
 
@@ -77,7 +79,7 @@ def tint_image(image, tint_color):
 class button():
     #MAIN BUTTON THINGS
     #w, h, x, y, colour, number, desc, tSize, type, int, price, clicks, price_func
-    def __init__(self, w, h, x, y, colour, number, desc, tSize, type, int, price, clicks, price_func=None):   #All the variables for the button
+    def __init__(self, w, h, x, y, colour, number, desc, tSize, type, int, price, clicks, price_func=None, prevButton = None):   #All the variables for the button
         self.button = pygame.Surface((w,h),pygame.SRCALPHA)
         self.number = number
         self.colour = colour
@@ -98,27 +100,32 @@ class button():
         self.clicks = 0     #how many times you clicked
         self.maxClicks = clicks #how many times you can click
         self.clicked = False    #Boolean to check if button is clicked
-        self.flag = False       #Just a flag for threading
+        self.clickFlag = False       #Just a flag for threading
         self.price = price      #Variable for the price tag
         self.price_func = price_func    #Price scaling function
         self.ogPrice = price
+        self.prev = prevButton
+        self.previous = None
+        self.prevFlag = False
+        self.drawFlag = False
 
     def draw_button(self, colour):   #Setting up the variables to draw the button
         if self.clicked == True:
             colour = (83,137,51)
-        pygame.draw.rect(screen, colour, self.buttonRect, border_radius=20)
 
-        self.buttonRect = self.button.get_rect(center = self.pos)
-        screen.blit(self.button, self.buttonRect)
-        self.numberDisplayRect = self.numberDisplay.get_rect(center = (self.buttonRect.centerx, self.buttonRect.centery - 40))
-        screen.blit(self.numberDisplay, self.numberDisplayRect)
-        self.descRect = self.desc.get_rect(center = (self.buttonRect.centerx, self.buttonRect.centery))
-        screen.blit(self.desc, self.descRect)
-        self.draw_price()
+        if self.drawFlag:
+            pygame.draw.rect(screen, colour, self.buttonRect, border_radius=20)
+            self.buttonRect = self.button.get_rect(center = self.pos)
+            screen.blit(self.button, self.buttonRect)
+            self.numberDisplayRect = self.numberDisplay.get_rect(center = (self.buttonRect.centerx, self.buttonRect.centery - 40))
+            screen.blit(self.numberDisplay, self.numberDisplayRect)
+            self.descRect = self.desc.get_rect(center = (self.buttonRect.centerx, self.buttonRect.centery))
+            screen.blit(self.desc, self.descRect)
+            self.draw_price()
 
-        self.upgradeCount = subberText.render(f'{self.clicks}/{self.maxClicks}', True, 'BLACK')
-        self.upgradeCountRect = self.upgradeCount.get_rect(topright = (self.buttonRect.centerx+140, self.buttonRect.centery-55))
-        screen.blit(self.upgradeCount, self.upgradeCountRect)
+            self.upgradeCount = subberText.render(f'{self.clicks}/{self.maxClicks}', True, 'BLACK')
+            self.upgradeCountRect = self.upgradeCount.get_rect(topright = (self.buttonRect.centerx+140, self.buttonRect.centery-55))
+            screen.blit(self.upgradeCount, self.upgradeCountRect)
 
 
     def draw_price(self):     #Setting up the price box
@@ -134,8 +141,17 @@ class button():
     def get_center(self):
         return self.buttonRect.center
 
-    def link(self,y):
-        pygame.draw.line(screen, (255,255,255), self.buttonRect.center, y.get_center(), 20)
+    def getPrev(self):
+        if self.prev == None:
+            self.drawFlag = True
+        elif self.prev != None and len(previousMoneyButtons) != 0:
+            if self.prev in previousMoneyButtons:
+                self.previous = moneyButtons[self.prev-1]
+                self.drawFlag = True
+
+    def link(self):
+        if self.prev != None and self.previous != None:
+            pygame.draw.line(screen, (255,255,255), self.buttonRect.center, self.previous.get_center(), 20)
 
     def setPos(self):
         self.pos = pygame.Vector2(self.startingpos)
@@ -158,18 +174,23 @@ class button():
         if self.buttonRect.collidepoint(mousepos) and self.clicked == False and money >= self.price:    #If mouse is over a button, you can click it and you have enough money then...
             if self.clicks == (self.maxClicks - 1):
                 self.clicked = True     #Sets the clicked value to true and turns flag on
-            self.flag = True
+            self.clickFlag = True
             money -= self.price
             self.clicks += 1
+            self.prevFlag = True
+            if self.clicks == 1 and self.prevFlag == True:
+                previousMoneyButtons.append(self.number)
+
             if self.price_func:
                 self.price = round(self.price_func(self.price, self.clicks), 2)
+            return self.button
         
 
     def moneyIncrement(self):   #Used in the threading, just increases the money by a set amount
         global money
         global tps
         while True:
-            if self.flag == True:   #When button has been pressed
+            if self.clickFlag == True:   #When button has been pressed
                 if self.type == 'add':  #If its additive then add money by the value
                     money += round(self.clicks * self.int,4)
                 if self.type == 'mult': #If its multiplicitive then multiply money by the value
@@ -181,7 +202,7 @@ class button():
     def resetButton(self):
         self.clicks = 0
         self.clicked = False
-        self.flag = False
+        self.clickflag = False
         self.price = self.ogPrice    #MAIN BUTTON THINGS
 #----------------------------------------------------------------------------------------------------------------------
 
@@ -218,37 +239,35 @@ tinted_image_button = tint_image(button_image, (124,124,124))  #Tints a button i
 #REBIRTH BUTTON CLASS (inheriting the button class)
 #-------------------------------------------------------------------------------
 class rButton(button):
-    def __init__(self, w, h, x, y, colour, number, desc, tSize, type, int, price, clicks, price_func=None):   #All the variables for the button
-        super().__init__(w, h, x, y, colour, number,desc, tSize, type, int, price, clicks, price_func)
+    def __init__(self, w, h, x, y, colour, number, desc, tSize, type, int, price, clicks, price_func=None, prevButton = None):   #All the variables for the button
+        super().__init__(w, h, x, y, colour, number,desc, tSize, type, int, price, clicks, price_func, prevButton)
         self.tick_upgrade_purchased = False
+        self.numberDisplay = subText.render(f'г{number}', True, 'Black')
 
     def draw_button(self, colour):   #Setting up the variables to draw the button
         if self.clicked == True:
             colour = (205, 124, 16)
-        pygame.draw.rect(screen, colour, self.buttonRect, border_radius=20)
 
-        self.buttonRect = self.button.get_rect(center = self.pos)
-        screen.blit(self.button, self.buttonRect)
-        self.numberDisplayRect = self.numberDisplay.get_rect(center = (self.buttonRect.centerx, self.buttonRect.centery - 40))
-        screen.blit(self.numberDisplay, self.numberDisplayRect)
-        self.descRect = self.desc.get_rect(center = (self.buttonRect.centerx, self.buttonRect.centery))
-        screen.blit(self.desc, self.descRect)
-        self.draw_price()
+        if self.drawFlag:
+            pygame.draw.rect(screen, colour, self.buttonRect, border_radius=20)
+            self.buttonRect = self.button.get_rect(center = self.pos)
+            screen.blit(self.button, self.buttonRect)
+            self.numberDisplayRect = self.numberDisplay.get_rect(center = (self.buttonRect.centerx, self.buttonRect.centery - 40))
+            screen.blit(self.numberDisplay, self.numberDisplayRect)
+            self.descRect = self.desc.get_rect(center = (self.buttonRect.centerx, self.buttonRect.centery))
+            screen.blit(self.desc, self.descRect)
+            self.draw_price()
     
-        # self.upgradeCount = subberText.render(f'{self.clicks}/{self.maxClicks}', True, 'BLACK')
-        # self.upgradeCountRect = self.upgradeCount.get_rect(topright = (self.buttonRect.centerx+140, self.buttonRect.centery-55))
-        # screen.blit(self.upgradeCount, self.upgradeCountRect)
-
-        global rebirths
-        if self.type == 'rebirth':  #If its the rebirth button
-            if money / self.price >= 0.5:         #if you have enough for the rebirth
-                self.rebirthCount = subberText.render(f'{millify(pow((money/self.price), 0.95))}', True, 'BLACK')       #displays how much you will get from it
-                self.rebirthCountRect = self.rebirthCount.get_rect(topright = (self.buttonRect.centerx+140, self.buttonRect.centery-55))
-                screen.blit(self.rebirthCount, self.rebirthCountRect)
-        else:   #if its a rebirth upgrade button
-            self.upgradeCount = subberText.render(f'{self.clicks}/{self.maxClicks}', True, 'BLACK')     #display how many times u can upgrade it
-            self.upgradeCountRect = self.upgradeCount.get_rect(topright = (self.buttonRect.centerx+140, self.buttonRect.centery-55))
-            screen.blit(self.upgradeCount, self.upgradeCountRect)
+            global rebirths
+            if self.type == 'rebirth':  #If its the rebirth button
+                if money / self.price >= 0.5:         #if you have enough for the rebirth
+                    self.rebirthCount = subberText.render(f'{millify(pow((money/self.price), 0.95))}', True, 'BLACK')       #displays how much you will get from it
+                    self.rebirthCountRect = self.rebirthCount.get_rect(topright = (self.buttonRect.centerx+140, self.buttonRect.centery-55))
+                    screen.blit(self.rebirthCount, self.rebirthCountRect)
+            else:   #if its a rebirth upgrade button
+                self.upgradeCount = subberText.render(f'{self.clicks}/{self.maxClicks}', True, 'BLACK')     #display how many times u can upgrade it
+                self.upgradeCountRect = self.upgradeCount.get_rect(topright = (self.buttonRect.centerx+140, self.buttonRect.centery-55))
+                screen.blit(self.upgradeCount, self.upgradeCountRect)
 
     def draw_price(self):     #Setting up the price box
         if self.price <= 0:     #If upgrade is free then display it to be free
@@ -262,22 +281,30 @@ class rButton(button):
         self.priceText_rect = self.display_subtext.get_rect(center=(self.buttonRect.centerx, self.buttonRect.centery + 40))  #setting up the position of the price text
         screen.blit(self.display_subtext, self.priceText_rect)  #drawing the price text
 
-    def get_center(self):
-        return self.buttonRect.center
+    def getPrev(self):
+        if self.prev == None:
+            self.drawFlag = True
+        elif self.prev != None and len(previousRebirthButtons) != 0:
+            if self.prev in previousRebirthButtons:
+                self.previous = rebirthButtons[self.prev]
+                self.drawFlag = True
 
-    def link(self,y):
-        pygame.draw.line(screen, (255,255,255), self.buttonRect.center, y.get_center(), 20)
-
-
+    def link(self):
+        if self.prev != None and self.previous != None:
+            pygame.draw.line(screen, (255,255,255), self.buttonRect.center, self.previous.get_center(), 20)
 
     def clickDetection(self, mousepos, camera):   #This is in the events area so only runs when you click the mouse button
         global money
         global rebirths
+        global rebirthFlag
         self.hitboxDetect(camera)
         if self.type == 'rebirth':
             if self.buttonRect.collidepoint(mousepos) and self.clicked == False and money >= self.price:    #If mouse is over a button, you can click it and you have enough money then...
                 rebirths += round(pow((money/self.price), 0.95),2)  #turns money into rebirths
                 money = 0
+                if rebirths > 0 and rebirthFlag == False:
+                    previousRebirthButtons.append(self.number)
+                    rebirthFlag = True
                 for i in moneyButtons:  #when rebirthed, resets all the money buttons
                     i.resetButton()
         else:
@@ -286,9 +313,12 @@ class rButton(button):
                     self.clicked = True
                 if self.type == 'tick':     #Just checks if you bought an upgrade that changes the tick
                     self.tick_upgrade_purchased = True  #If you did, says that you did
-                self.flag = True
+                self.clickFlag = True
                 rebirths -= self.price
                 self.clicks += 1
+                self.prevFlag = True
+                if self.clicks == 1 and self.prevFlag == True:
+                    previousMoneyButtons.append(self.number)                
                 if self.price_func:
                     self.price = round(self.price_func(self.price, self.clicks), 2)
 
@@ -298,7 +328,7 @@ class rButton(button):
         global money
         global tps
         while True:
-            if self.flag == True:   #When button has been pressed
+            if self.clickFlag == True:   #When button has been pressed
                 if self.type == 'mult': #If its multiplicitive then multiply money by the value
                     money = money + (money * round(self.clicks * self.int,4))
                 if self.type == 'exp':  #If its exponential then do the money to the power of the value
@@ -368,22 +398,25 @@ camera = pygame.Vector2(0, 0)
 #Type = add (additive), mult (multiplicitive), exp (exponential), tick (changes ticks per second [input in ms])
 #-------------------------------------------------------------------------------
 # £ MONEY BUTTONS
-moneyUp1 = button(300, 120, 550, 550, moneyGreen, 1, 'Adds 0.1 per tick', subText, 'add', 0.1, 0, 5, price_func=b1Func)         
-moneyUp2 = button(300,120,550,325, moneyGreen, 2, 'Multiplies money by \n        0.02 per tick', subberText, 'mult',0.02,1,5, price_func=b2Func)       #Don't forget to THREAD EACH BUTTON
-moneyUp3 = button(300,120,550,100, moneyGreen,3, 'Add 0.5 per tick', subText, 'add', 0.5, 3, 10, price_func = snowball)            #And to ADD THE CLICK DETECTION AND DRAW THE BUTTON IN THE WHILE LOOP
-moneyUp4 = button(300,120,200,-125, moneyGreen,4, 'Multiplies money by \n    0.05 per tick', subberText, 'mult', 0.1, 8, 10, price_func=default)            #And to ADD THE CLICK DETECTION AND DRAW THE BUTTON IN THE WHILE LOOP
-moneyUp5 = button(300,120,900,-125, moneyGreen,5, 'Money boosts itself', subText, 'exp', 0.05, 15, 1)            #And to ADD THE CLICK DETECTION AND DRAW THE BUTTON IN THE WHILE LOOP
+moneyUp1 = button(300, 120, 550, 550, moneyGreen, 1, 'Adds 0.1 per tick', subText, 'add', 10.1, 0, 5, price_func=b1Func)         
+moneyUp2 = button(300,120,550,325, moneyGreen, 2, 'Multiplies money by \n        0.02 per tick', subberText, 'mult',0.02,1,5, price_func=b2Func, prevButton=1)       #Don't forget to THREAD EACH BUTTON
+moneyUp3 = button(300,120,550,100, moneyGreen,3, 'Add 0.5 per tick', subText, 'add', 0.5, 3, 10, price_func = snowball, prevButton=2)            #And to ADD THE CLICK DETECTION AND DRAW THE BUTTON IN THE WHILE LOOP
+moneyUp4 = button(300,120,200,-125, moneyGreen,4, 'Multiplies money by \n    0.05 per tick', subberText, 'mult', 0.1, 8, 10, price_func=default, prevButton=3)            #And to ADD THE CLICK DETECTION AND DRAW THE BUTTON IN THE WHILE LOOP
+moneyUp5 = button(300,120,900,-125, moneyGreen,5, 'Money boosts itself', subText, 'exp', 0.05, 15, 1, prevButton=3)            #And to ADD THE CLICK DETECTION AND DRAW THE BUTTON IN THE WHILE LOOP
 
 #Class for buttons
 moneyButtons = [moneyUp1, moneyUp2, moneyUp3, moneyUp4, moneyUp5]
+previousMoneyButtons = []
 
 #REBIRTH BUTTONS
-rebirthButton = rButton(300,120,2000,550,rebirthYellow,'г0','Rebirth',subText,'rebirth', 0, 100, 2)
-rebirth1 = rButton(300,120,2000,325,rebirthYellow,'г1','Multiply money by \n     0.02 per tick', subberText, 'mult', 0.02, 1, 25, price_func=default)
-rebirth2 = rButton(300,120,2000,100,rebirthYellow,'г2','Decreases ticks per \n  second by 0.05', subberText, 'tick', 50, 3, 10, price_func=default)
+rebirthButton = rButton(300,120,2000,550,rebirthYellow,0,'Rebirth',subText,'rebirth', 0, 100, 2)
+rebirth1 = rButton(300,120,2000,325,rebirthYellow,1,'Multiply money by \n     0.02 per tick', subberText, 'mult', 0.02, 1, 25, price_func=default, prevButton=0)
+rebirth2 = rButton(300,120,2350,550,rebirthYellow,2,'Decreases ticks per \n  second by 0.05', subberText, 'tick', 50, 3, 10, price_func=default, prevButton=0)
+rebirth3 = rButton(300,120,2000,775,rebirthYellow,3,'Money boosts itself by \n      0.01', subberText, 'exp', 0.01, 5, 100, price_func=default, prevButton=0)
 
 #Class for rebirth buttons
-rebirthButtons = [rebirthButton, rebirth1, rebirth2]
+rebirthButtons = [rebirthButton, rebirth1, rebirth2, rebirth3]
+previousRebirthButtons = []
 
 #UI BUTTONS
 menuButton = UIbutton(60,60,30,100)    #UI BUTTON VARIABLES ([Width], [Height], [X], [Y])
@@ -409,6 +442,8 @@ tr1 = threading.Thread(target=rebirth1.moneyIncrement, daemon=True)  #Always hav
 tr1.start()                                                          #The .start() just starts the thread when it sees the flag has been turned on (button is pressed)
 tr2 = threading.Thread(target=rebirth2.moneyIncrement, daemon=True)
 tr2.start()
+tr3 = threading.Thread(target=rebirth3.moneyIncrement, daemon=True)
+tr3.start()
 #-------------------------------------------------------------------------------
 
 #Main game loop
@@ -477,24 +512,24 @@ while True:
 
     #Making rebirths visble on the screen
     rebirthText = text.render(f'Г {millify(rebirths)}', True, 'WHITE')   #Shows the value of the money (and rounds it to two decimal places)
-    text_pos = pygame.Vector2(2000, 750) - camera
+    text_pos = pygame.Vector2(1700, 550) - camera
     rebirthText_rect = rebirthText.get_rect(center=text_pos)
     screen.blit(rebirthText, rebirthText_rect)
 
     menuButton.draw_UIbutton(tinted_image_button)   #Draws the Menu Tab button to the screen
 
-    moneyUp1.link(moneyUp2)
-    moneyUp2.link(moneyUp3)
-    moneyUp3.link(moneyUp4)
-    moneyUp3.link(moneyUp5)
-
-    rebirthButton.link(rebirth1)
-    rebirth1.link(rebirth2)
-
     #Drawing money upgrade buttons
+    for i in moneyButtons:
+        i.getPrev()
+        i.link()
+
     for i in moneyButtons:
         i.changePos(camera)
         i.draw_button(moneyGreen)
+
+    for i in rebirthButtons:
+        i.getPrev()
+        i.link()
 
     for i in rebirthButtons:
         i.changePos(camera)
