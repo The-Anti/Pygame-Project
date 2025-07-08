@@ -67,3 +67,7 @@ Update log (27/05/25)
     -Finally made the buttons hidden until the previous button is bought, where it will make the button visible and link it automatically.
       -Some buttons make multiple buttons visible!
     -Added more abbreviations for numbers, making it able to display larger numbers in a compact way.
+
+  Update log (08/05/25)
+    -Added a multi connect feature, making it so that a button can link to multiple other buttons (only two others for now)
+    -Removed the self destruct button
