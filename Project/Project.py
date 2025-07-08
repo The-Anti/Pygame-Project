@@ -79,7 +79,7 @@ def tint_image(image, tint_color):
 class button():
     #MAIN BUTTON THINGS
     #w, h, x, y, colour, number, desc, tSize, type, int, price, clicks, price_func
-    def __init__(self, w, h, x, y, colour, number, desc, tSize, type, int, price, clicks, price_func=None, prevButton = None):   #All the variables for the button
+    def __init__(self, w, h, x, y, colour, number, desc, tSize, type, int, price, clicks, price_func=None, prevButton = None, prevButton2=None):   #All the variables for the button
         self.button = pygame.Surface((w,h),pygame.SRCALPHA)
         self.number = number
         self.colour = colour
@@ -88,7 +88,6 @@ class button():
         self.numberDisplay = subText.render(f'{number}', True, 'Black')
         if tSize == text:
             self.desc = text.render(desc, True, 'Black')
-            text.metrics()
         elif tSize == subText:
             self.desc = subText.render(desc, True, 'Black')
         elif tSize == subberText:
@@ -104,8 +103,10 @@ class button():
         self.price = price      #Variable for the price tag
         self.price_func = price_func    #Price scaling function
         self.ogPrice = price
-        self.prev = prevButton
+        self.prev1 = prevButton
+        self.prev2 = prevButton2
         self.previous = None
+        self.previous2 = None
         self.prevFlag = False
         self.drawFlag = False
 
@@ -142,16 +143,22 @@ class button():
         return self.buttonRect.center
 
     def getPrev(self):
-        if self.prev == None:
+        if self.prev1 == None:
             self.drawFlag = True
-        elif self.prev != None and len(previousMoneyButtons) != 0:
-            if self.prev in previousMoneyButtons:
-                self.previous = moneyButtons[self.prev-1]
+        elif self.prev1 != None and len(previousMoneyButtons) != 0:
+            if self.prev1 in previousMoneyButtons:
+                self.previous = moneyButtons[self.prev1-1]
+                self.drawFlag = True
+            if self.prev2 != None and self.prev2 in previousMoneyButtons:
+                self.previous2 = moneyButtons[self.prev2-1]
                 self.drawFlag = True
 
     def link(self):
-        if self.prev != None and self.previous != None:
+        if self.prev1 != None and self.previous != None:
             pygame.draw.line(screen, (255,255,255), self.buttonRect.center, self.previous.get_center(), 20)
+        if self.prev2 != None and self.previous2 != None:
+            pygame.draw.line(screen, (255,255,255), self.buttonRect.center, self.previous2.get_center(), 20)
+
 
     def setPos(self):
         self.pos = pygame.Vector2(self.startingpos)
@@ -191,12 +198,12 @@ class button():
         global tps
         while True:
             if self.clickFlag == True:   #When button has been pressed
+                if self.type == 'exp':  #If its exponential then do the money to the power of the value
+                    money += pow(money, round(self.clicks * self.int,4))
+                if self.type == 'mult': #If its multiplicitive then multiply money by the value
+                    money += (money * round(self.clicks * self.int,4))
                 if self.type == 'add':  #If its additive then add money by the value
                     money += round(self.clicks * self.int,4)
-                if self.type == 'mult': #If its multiplicitive then multiply money by the value
-                    money = money + (money * round(self.clicks * self.int,4))
-                if self.type == 'exp':  #If its exponential then do the money to the power of the value
-                    money = money + pow(money, round(self.clicks * self.int,4))
             time.sleep(tps/1000)
 
     def resetButton(self):
@@ -282,16 +289,19 @@ class rButton(button):
         screen.blit(self.display_subtext, self.priceText_rect)  #drawing the price text
 
     def getPrev(self):
-        if self.prev == None:
+        if self.prev1 == None:
             self.drawFlag = True
-        elif self.prev != None and len(previousRebirthButtons) != 0:
-            if self.prev in previousRebirthButtons:
-                self.previous = rebirthButtons[self.prev]
+        elif self.prev1 != None and len(previousRebirthButtons) != 0:
+            if self.prev1 in previousRebirthButtons:
+                self.previous = rebirthButtons[self.prev1]
+                self.drawFlag = True
+            if self.prev2 != None and self.prev2 in previousRebirthButtons:
+                self.previous2 = moneyButtons[self.prev2]
                 self.drawFlag = True
 
-    def link(self):
-        if self.prev != None and self.previous != None:
-            pygame.draw.line(screen, (255,255,255), self.buttonRect.center, self.previous.get_center(), 20)
+    # def link(self):
+    #     if self.prev1 != None and self.previous != None:
+    #         pygame.draw.line(screen, (255,255,255), self.buttonRect.center, self.previous.get_center(), 20)
 
     def clickDetection(self, mousepos, camera):   #This is in the events area so only runs when you click the mouse button
         global money
@@ -380,6 +390,9 @@ def default(curp, click):
     else:
         return curp * 1.05
     
+def hybrid(curp, click):
+    return curp + (1.5 * click) * (1.2 ** click)
+    
 def snowball(curp, clicks):
     if clicks < 3:
         return curp * 1.05
@@ -403,9 +416,10 @@ moneyUp2 = button(300,120,550,325, moneyGreen, 2, 'Multiplies money by \n       
 moneyUp3 = button(300,120,550,100, moneyGreen,3, 'Add 0.5 per tick', subText, 'add', 0.5, 3, 10, price_func = snowball, prevButton=2)            #And to ADD THE CLICK DETECTION AND DRAW THE BUTTON IN THE WHILE LOOP
 moneyUp4 = button(300,120,200,-125, moneyGreen,4, 'Multiplies money by \n    0.05 per tick', subberText, 'mult', 0.1, 8, 10, price_func=default, prevButton=3)            #And to ADD THE CLICK DETECTION AND DRAW THE BUTTON IN THE WHILE LOOP
 moneyUp5 = button(300,120,900,-125, moneyGreen,5, 'Money boosts itself', subText, 'exp', 0.05, 15, 1, prevButton=3)            #And to ADD THE CLICK DETECTION AND DRAW THE BUTTON IN THE WHILE LOOP
+moneyUp6 = button(300,120,550,-350, moneyGreen,6, 'Add 1 per tick', subText, 'add', 1, 60, 5, price_func=default, prevButton=4, prevButton2=5)            #And to ADD THE CLICK DETECTION AND DRAW THE BUTTON IN THE WHILE LOOP
 
 #Class for buttons
-moneyButtons = [moneyUp1, moneyUp2, moneyUp3, moneyUp4, moneyUp5]
+moneyButtons = [moneyUp1, moneyUp2, moneyUp3, moneyUp4, moneyUp5, moneyUp6]
 previousMoneyButtons = []
 
 #REBIRTH BUTTONS
@@ -435,6 +449,8 @@ t4 = threading.Thread(target=moneyUp4.moneyIncrement, daemon=True)  #Always have
 t4.start()                                                          #The .start() just starts the thread when it sees the flag has been turned on (button is pressed)
 t5 = threading.Thread(target=moneyUp5.moneyIncrement, daemon=True)
 t5.start()
+t6 = threading.Thread(target=moneyUp5.moneyIncrement, daemon=True)
+t6.start()
 
 
 #Rebirth button threading
@@ -502,7 +518,6 @@ while True:
             delta = mouse_pos - last_mouse_pos
             camera -= delta
             last_mouse_pos = mouse_pos
-
 
     #Making the money visible on the screen
     moneyText = text.render(f'£ {millify(money)}', True, 'WHITE')   #Shows the value of the money (and rounds it to two decimal places)
